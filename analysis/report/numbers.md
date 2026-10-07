@@ -100,7 +100,7 @@ Assumes every staking minipool operator redeploys all of their node ETH into meg
 
 The same arithmetic for the **current queue** (2,107 validators): user ETH needed **58,996**; node ETH already locked in the deposit pool **8,428**.
 
-If `reduced_bond` were set to 6 ETH today: **86** megapool nodes with **1,910** active validators would be below the new curve, a total shortfall of **3,684 ETH** to top up (RPIP-83 proposes topping up from rewards).
+If `reduced_bond` were set to 6 ETH today: **111** of 112 active megapools (2,148 staked validators) would be below the new curve, a total shortfall of **4,272 ETH** to top up (RPIP-83 proposes topping up from rewards; see part 2 for how long that takes).
 
 ## 3b. Minipools already leaving (beacon-chain status at snapshot)
 

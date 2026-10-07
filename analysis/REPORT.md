@@ -2,7 +2,7 @@
 
 Snapshot: Ethereum mainnet block 26,118,341 (4 October 2026, 10:18 UTC), beacon head slot 15,357,280.
 Everything here is reproducible from `data/` with `python3 analyze.py`; the generated tables are in
-`report/numbers.md`, figures in `report/figures/`. Collection used only public RPC `eth_call`s via
+`report/numbers.md` and `report/numbers_part2.md`, figures in `report/figures/`. Collection used only public RPC `eth_call`s via
 Multicall3, one archive RPC for weekly history, and one public beacon API for current validator
 status. No keys, no accounts, no paid services.
 
@@ -49,8 +49,10 @@ rETH redemptions; it will not fund the whole queue.
 | 8 | 16,742 | 401,808 | 317,232 | 84,576 | 23% |
 
 With net rETH flow negative, none of these is reachable from organic demand. A 6 ETH
-`reduced_bond` today would put 86 of 112 active megapool nodes (1,910 of 2,164 validators) below the
-curve, with a combined top-up of 3,684 ETH.
+`reduced_bond` today would put 111 of 112 active megapools below the curve (almost every active
+validator carries a 4 ETH bond), a combined top-up of 4,272 ETH. From retained rewards alone that
+takes a 4 ETH validator about 12 years at 3% gross without RPL staked, about 8 years with RPL
+staked (node share 5% plus voter share 9%); see finding 9.
 
 **4. Megapools are concentrated.** 2,164 active megapool validators on 112 nodes; the 10 largest
 nodes hold 70.1%, one node has 798, Gini 0.80. 24 nodes (12.2% of validators) stake zero RPL on
@@ -103,6 +105,28 @@ then shields anyone with a trivial stake: about 7.6 RPL per borrowed ETH, 212 RP
 validator (~0.15 ETH today), moves a node above the median; the absolute-RPL reading hits small nodes
 twice as often as the per-ETH reading.
 
+**7. The exiting operator's ETH lands in the week of 13 October.** All 2,472 exiting minipools
+have exit epochs between 481,623 and 482,028 (12 to 13 October 2026) and become withdrawable on 13
+to 14 October: 14,976 ETH of user capital on the 13th and 40,344 ETH on the 14th, plus 23,784 ETH of
+node capital. The beacon withdrawal sweep then pays balances over the following days, and each
+minipool's user share returns to the deposit pool on `distributeBalance`.
+
+**8. Who the returning ETH funds.** The queues were read in on-chain order (1,314 express, 793
+standard, 194 megapools, 28 ETH of user capital each; assignments go four express then one standard).
+The queue is as concentrated as the megapool set: six nodes hold 1,032 of the 2,107 entries (49%),
+the largest has 249 queued, and 60 nodes have one. If all 55,320 ETH went to the queue it would fund
+1,975 validators on 194 nodes and leave 132 standard-queue entries; the top six nodes would receive
+46% of it, and three of the top five beneficiaries stake zero RPL on their megapool. If two thirds
+went to the queue and a third to rETH redemptions (the Saturn 1 pattern), 1,317 validators on 116
+nodes are funded and the top six take 54%. 33,849 express tickets are outstanding across 1,375
+nodes, so the standard queue stays behind the express queue for a long time.
+
+**9. Years to a 6 ETH bond from rewards.** With `reduced_bond` at 6 ETH and top-ups paid from
+retained rewards (RPIP-83), a 4 ETH validator earning 3% gross retains about 0.16 ETH a year without
+RPL (own bond plus the 5% node share on 28 borrowed ETH) and about 0.24 ETH with RPL staked (plus
+the 9% voter share). The validator-weighted time to reach 6 ETH across today's megapools is 12.2
+years without RPL and 8.3 years with it at 3%; 14.6 and 10.0 years at 2.5%; 10.4 and 7.1 at 3.5%.
+
 ## Method and caveats
 
 - All 42,317 minipool contracts read; 14,099 are status Staking and not finalised; no initialised
@@ -123,6 +147,12 @@ twice as often as the per-ETH reading.
   RPIP-83 is adopted; at the current 4 ETH bond all nodes tie. "Largest node first" and "avoid
   repeat nodes" are the strong forms of the RPIP's "biasing towards"; the size-weighted variant is
   the mild form.
+- Bond per validator is `nodeBond` divided by staked, non-exiting validators per megapool; queued
+  bonds sit in `nodeQueuedBond` and are excluded. Queue order comes from `LinkedListStorage.scan`
+  on the express and standard namespaces; the funding simulation applies the 4:1 express rate and
+  ignores minimum-balance rules and anything deposited or burned in the meantime.
+- Exit and withdrawable epochs are the beacon chain's; the date the ETH reaches the deposit pool
+  also depends on the withdrawal sweep and on someone calling `distributeBalance`.
 - RPIP-83 arithmetic assumes full redeployment of node ETH; the "net new rETH needed" figures are
   upper bounds on demand and lower bounds on the ETH that leaves.
 - The six exiting nodes are described as one operator because of identical balances and ticket
@@ -135,7 +165,9 @@ pip install web3 pandas matplotlib
 python3 collect_snapshot_multicall.py --outdir data --block 26118341 --rpc https://eth.drpc.org
 python3 collect_history.py --start 2025-10-01 --out data/history.csv
 python3 collect_beacon.py --datadir data --beacon https://lodestar-mainnet.chainsafe.io
+python3 collect_queue.py --block 26118341
 python3 analyze.py --datadir data --outdir report --runs 200
+python3 analyze_queue_exits.py
 ```
 
 Code MIT, data and figures CC BY 4.0.

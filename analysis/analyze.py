@@ -220,9 +220,12 @@ def main():
     t83["megapool bond (ETH)"] = t83["megapool bond (ETH)"].map(lambda b: f"{b:g}")
     P(md_table(t83, "{:,.0f}") + "\n")
     P(f"The same arithmetic for the **current queue** ({q_total:,} validators): user ETH needed **{queued_user_eth:,.0f}**; node ETH already locked in the deposit pool **{float(meta['deposit_pool_node_balance_eth']):,.0f}**.\n")
-    below6 = nodes_mg[nodes_mg.bond_per_validator < 6]
-    short6 = ((6 - below6.bond_per_validator) * below6.active_validators).sum()
-    P(f"If `reduced_bond` were set to 6 ETH today: **{len(below6):,}** megapool nodes with **{below6.active_validators.sum():,}** active validators would be below the new curve, a total shortfall of **{short6:,.0f} ETH** to top up (RPIP-83 proposes topping up from rewards).\n")
+    stk_mp = active.groupby("megapool").size().rename("staked_validators")
+    mg6 = mg.join(stk_mp, on="megapool"); mg6 = mg6[mg6.staked_validators > 0].copy()
+    mg6["bond_pv"] = mg6.nodeBond / mg6.staked_validators  # nodeBond covers staked validators; queued bonds are in nodeQueuedBond
+    below6 = mg6[mg6.bond_pv < 6]
+    short6 = ((6 - below6.bond_pv) * below6.staked_validators).sum()
+    P(f"If `reduced_bond` were set to 6 ETH today: **{len(below6):,}** of {len(mg6):,} active megapools ({int(below6.staked_validators.sum()):,} staked validators) would be below the new curve, a total shortfall of **{short6:,.0f} ETH** to top up (RPIP-83 proposes topping up from rewards; see part 2 for how long that takes).\n")
     fig, ax = plt.subplots(figsize=(7, 4))
     ax.bar([str(b) for b in t83["megapool bond (ETH)"]], t83["net new rETH-ETH needed"]); ax.set_xlabel("megapool bond (ETH)"); ax.set_ylabel("net new rETH-ETH needed")
     ax.set_title("ETH that must be minted as rETH to migrate all staking minipools"); ax.grid(alpha=.3, axis="y")

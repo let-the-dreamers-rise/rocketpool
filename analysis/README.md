@@ -7,6 +7,8 @@ Read `REPORT.md` for findings. `report/numbers.md` holds every generated table; 
 | `collect_snapshot_multicall.py` | Reads every minipool and megapool validator, every megapool, and node RPL/ETH figures at a pinned block through Multicall3 (public RPCs, rotated on rate limits). Writes `data/minipools.csv`, `data/megapool_validators.csv`, `data/megapools.csv`, `data/nodes.csv`, `data/meta.json`. |
 | `collect_history.py` | Weekly rETH supply, exchange rate, deposit pool, queue lengths, megapool and minipool counts from an archive RPC. Writes `data/history.csv`. |
 | `collect_beacon.py` | Current beacon-chain status, balance and activation epoch for every pubkey, from a public beacon API. Writes `data/beacon_validators.csv`. |
+| `collect_queue.py` | Reads the express and standard megapool deposit queues in on-chain order from `LinkedListStorage.scan`. Writes `data/queue.csv`. |
+| `analyze_queue_exits.py` | Exit timing of the minipools leaving (beacon epochs), who the returning ETH funds in queue order, years to a 6 ETH bond from rewards. Writes `report/numbers_part2.md` and figures 07 and 08. |
 | `analyze.py` | Supply/demand, composition, RPIP-83 bond arithmetic, exiting minipools, RPIP-71 phase 1 ordering and phase 2 tournament simulations, activation months. Writes `report/numbers.md` and `report/figures/*.png`. |
 
 ```
@@ -14,7 +16,9 @@ pip install web3 pandas matplotlib
 python3 collect_snapshot_multicall.py --outdir data --block 26118341 --rpc https://eth.drpc.org
 python3 collect_history.py --start 2025-10-01 --out data/history.csv
 python3 collect_beacon.py --datadir data --beacon https://lodestar-mainnet.chainsafe.io
+python3 collect_queue.py --block 26118341
 python3 analyze.py --datadir data --outdir report --runs 200
+python3 analyze_queue_exits.py
 ```
 
 Snapshot in this repository: block 26,118,341 (4 Oct 2026), beacon head slot 15,357,280. Only
